@@ -1,4 +1,8 @@
 import database as db
 
-con, cur = db.start()
-db.terminate(con)
+class Schedule:
+    def __init__(self):
+        con, cur = db.start()
+        
+    def __del__(self):
+        db.terminate(con)
