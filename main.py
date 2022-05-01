@@ -20,13 +20,14 @@ class Schedule:
 
 if __name__ == "__main__":
     S = Schedule()
-    current_user = db.select(S.cur, "settings", ["value"], "name=:name", {"name": "current_user"})
-    print(current_user)
+    current_user = db.select(S.cur, "settings", ["value"], "name=?", ("current_user", ))
+    # print(current_user)
     if current_user == []:
         username = input("Enter a username: ")
         user_id = S.add_user(username)
         S.set_current_user(user_id)
         current_user = user_id
-    
-    
-    
+    else:
+        current_user = int(current_user[0][0])
+    username = db.select(S.cur, "users", ["username"], "rowid=?", (current_user,))[0][0]
+    print("Welcome, {}!".format(username))

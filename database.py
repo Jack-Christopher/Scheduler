@@ -56,6 +56,8 @@ def select(cur, table, column_names, where_clause, where_data):
     query = "SELECT {} FROM {} ".format(",".join(column_names), table)
     if where_clause is not None:
         query += "WHERE {} ".format(where_clause)
+    # print("query: {}".format(query))
+    # print("data: {}".format(where_data))
     cur.execute(query, where_data)
     return cur.fetchall()
 
