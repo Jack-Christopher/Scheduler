@@ -11,7 +11,9 @@ def start():
 
     cur.execute(
         '''CREATE TABLE IF NOT EXISTS courses
-        (name TEXT)'''
+        (name TEXT,
+        user_id INTEGER,
+        FOREIGN KEY(user_id) REFERENCES users(rowid))'''
     )
 
 
