@@ -5,15 +5,8 @@ def start():
     cur = con.cursor()
 
     cur.execute(
-        '''CREATE TABLE IF NOT EXISTS users 
-        (username TEXT)'''
-    )
-
-    cur.execute(
         '''CREATE TABLE IF NOT EXISTS courses
-        (name TEXT,
-        user_id INTEGER,
-        FOREIGN KEY(user_id) REFERENCES users(rowid))'''
+        (name TEXT)'''
     )
 
 
@@ -22,9 +15,7 @@ def start():
         course_id INTEGER,
         due_date DATE,
         priority INTEGER,
-        user_id INTEGER,
-        FOREIGN KEY(course_id) REFERENCES courses(id),
-        FOREIGN KEY(user_id) REFERENCES users(id))'''
+        FOREIGN KEY(course_id) REFERENCES courses(id))'''
     )
     
     cur.execute('''CREATE TABLE IF NOT EXISTS settings
@@ -47,21 +38,31 @@ def insert(con, cur, table, column_names, data):
     if column_names is not None:
         query += "({}) ".format(",".join(column_names))
 
-    query += "VALUES ({})".format(",".join(["?"] * len(data[0])))
-    # print("query: {}".format(query))
-    # print("data: {}".format(data))
-    cur.executemany(query, data)
+    query += "VALUES ({})".format(",".join(["?"] * len(data)))
+    print("query: {}".format(query))
+    print("data: {}".format(data))
+    cur.execute(query, data)
     con.commit()
-
 
 def select(cur, table, column_names, where_clause, where_data):
     query = "SELECT {} FROM {} ".format(",".join(column_names), table)
     if where_clause is not None:
         query += "WHERE {} ".format(where_clause)
+        cur.execute(query, where_data)
     # print("query: {}".format(query))
     # print("data: {}".format(where_data))
-    cur.execute(query, where_data)
+    else:
+        cur.execute(query)
     return cur.fetchall()
+
+def delete(con, cur, table, where_clause, where_data):
+    query = "DELETE FROM {} ".format(table)
+    if where_clause is not None:
+        query += "WHERE {} ".format(where_clause)
+        cur.execute(query, where_data)
+    else:
+        cur.execute(query)
+    con.commit()
 
 def terminate(con):
     con.close()
