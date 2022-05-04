@@ -7,7 +7,7 @@ class Schedule:
         self.con, self.cur = db.start()
     
     def set_user(self, user_name):
-        db.insert(self.con, self.cur, "settings", ["name", "value"], [("user", user_name)])
+        db.insert(self.con, self.cur, "settings", ["name", "value"], ("user", user_name))
         self.con.commit()
     
     def get_user(self):
@@ -24,10 +24,13 @@ class Schedule:
         print("Scheduler - Managment of my tasks\n")
         courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
         for course in courses:
-            print("-- {} --".format(course[1]))
+            print("|| {}".format(course[1]))
             tasks = db.select(self.cur, "tasks", ["name", "due_date", "priority"], "course_id=?", (course[0], ))
-            for task in tasks:
-                print("\t{} {}         {}".format(task[0], task[1], chr(4)*task[2]))
+            if len(tasks) == 0:
+                print("| \t(No tasks)")
+            else:
+                for task in tasks:
+                    print("| \t{:<10s}  {}    {}".format(chr(4)*task[2], task[0], task[1]))
         print()
         
     def select_course(self):
