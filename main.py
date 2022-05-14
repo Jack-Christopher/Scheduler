@@ -22,7 +22,7 @@ class Schedule(tk.Tk):
 
         # create the courses_menu
         self.courses_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.courses_menu.add_command(label="View courses")
+        self.courses_menu.add_command(label="View courses", command=self.view_courses)
         self.courses_menu.add_separator()
         self.courses_menu.add_command(label="Add a course")
         self.courses_menu.add_command(label="Remove a course")
@@ -48,6 +48,8 @@ class Schedule(tk.Tk):
         # add the options to the menubar
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
         self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
+
+        self.scrollable_frame = None
 
         # start connection to database
         self.con, self.cur = db.start()
@@ -88,19 +90,39 @@ class Schedule(tk.Tk):
     #     choice = input("Enter a choice: ")
     #     return int(choice)
     
-    def courses(self):
-        print(" 1. Add a course")
-        print(" 2. Remove a course")
-        print(" 3. Back")
-        choice = input("Enter a choice: ")
-        return choice
     
-    def tasks(self):
-        print(" 1. Add a task")
-        print(" 2. Remove a task")
-        print(" 3. Back")
-        choice = input("Enter a choice: ")
-        return choice
+    def view_courses(self):
+        # if there's already a frame, destroy it
+        if self.scrollable_frame is not None:
+            self.scrollable_frame.destroy()
+        self.scrollable_frame = tk.Frame(self)
+        self.scrollable_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.scrollbar = tk.Scrollbar(self.scrollable_frame)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.listbox = tk.Listbox(self.scrollable_frame, yscrollcommand=self.scrollbar.set)
+        self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.scrollbar.config(command=self.listbox.yview)
+
+        courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
+
+        if len(courses) != 0:
+            for course in courses:
+                # put the course name in a scrollable frame
+                self.listbox.insert(tk.END, course[1])
+                # put the tasks below the course name
+                tasks = db.select(self.cur, "tasks", ["name", "due_date", "priority"], "course_id=?", (course[0], ))
+                if len(tasks) != 0:
+                    for task in tasks:
+                        # table of tasks
+                        self.listbox.insert(tk.END, "    {}{}  {}  {}".format('\u2666'*task[2], " "*3*(10-task[2]), task[0], task[1]))
+                else:
+                    self.listbox.insert(tk.END, "    (No tasks)")
+                self.listbox.insert(tk.END, "")
+        else:
+            self.listbox.insert(tk.END, "No courses")
+        
+        
+        # print("\n".join(data))
 
     def __del__(self):
         db.terminate(self.con)
