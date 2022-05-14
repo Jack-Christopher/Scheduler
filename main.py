@@ -10,7 +10,7 @@ class Schedule(tk.Tk):
 
         # configure the root window
         self.title('Scheduler - Managment of my tasks')
-        self.geometry('450x600')
+        self.geometry('450x600+500+20')
         self.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
 
         # create menu bar
