@@ -10,7 +10,7 @@ class Schedule(tk.Tk):
 
         # configure the root window
         self.title('Scheduler - Managment of my tasks')
-        self.geometry('450x500')
+        self.geometry('450x600')
         self.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
 
         # create menu bar
@@ -69,19 +69,6 @@ class Schedule(tk.Tk):
 
         return user_name
     
-    # def print_tasks(self):
-    #     print("Scheduler - Managment of my tasks\n")
-    #     courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
-    #     for course in courses:
-    #         print("|| {}".format(course[1]))
-    #         tasks = db.select(self.cur, "tasks", ["name", "due_date", "priority"], "course_id=?", (course[0], ))
-    #         if len(tasks) == 0:
-    #             print("| \t(No tasks)")
-    #         else:
-    #             for task in tasks:
-    #                 print("| \t{:<10s}  {}    {}".format(chr(4)*task[2], task[0], task[1]))
-    #     print()
-        
     # def select_course(self):
     #     print("Select a course: ")
     #     courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
@@ -108,21 +95,28 @@ class Schedule(tk.Tk):
         if len(courses) != 0:
             for course in courses:
                 # put the course name in a scrollable frame
-                self.listbox.insert(tk.END, course[1])
+                course_frame = tk.Frame(self.listbox)
+                course_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+                course_label = tk.Label(course_frame, text=course[1], font=("Helvetica", 15))
+                course_label.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+                
                 # put the tasks below the course name
                 tasks = db.select(self.cur, "tasks", ["name", "due_date", "priority"], "course_id=?", (course[0], ))
                 if len(tasks) != 0:
                     for task in tasks:
                         # table of tasks
-                        self.listbox.insert(tk.END, "    {}{}  {}  {}".format('\u2666'*task[2], " "*3*(10-task[2]), task[0], task[1]))
+                        task_frame = tk.Frame(self.listbox)
+                        task_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+                        task_label = tk.Label(task_frame, text="{}{}  {}  {}".format('\u2666'*task[2], " "*3*(10-task[2]), task[0], task[1]), font=("Helvetica", 12))
+                        task_label.pack(side=tk.TOP, fill=tk.X, expand=True)
                 else:
-                    self.listbox.insert(tk.END, "    (No tasks)")
-                self.listbox.insert(tk.END, "")
+                    tk.Label(self.listbox, text="No tasks", font=("Helvetica", 12)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+                
+                # add a separator
+                tk.Frame(self.listbox, height=2, bd=1, relief=tk.SUNKEN).pack(side=tk.TOP, fill=tk.X, pady=10)
         else:
-            self.listbox.insert(tk.END, "No courses")
+            tk.Label(self.listbox, text="No courses", font=("Helvetica", 12)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
-        
-        # print("\n".join(data))
 
     def __del__(self):
         db.terminate(self.con)
