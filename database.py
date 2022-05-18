@@ -39,8 +39,8 @@ def insert(con, cur, table, column_names, data):
         query += "({}) ".format(",".join(column_names))
 
     query += "VALUES ({})".format(",".join(["?"] * len(data)))
-    print("query: {}".format(query))
-    print("data: {}".format(data))
+    # print("query: {}".format(query))
+    # print("data: {}".format(data))
     cur.execute(query, data)
     con.commit()
 
@@ -54,6 +54,17 @@ def select(cur, table, column_names, where_clause, where_data):
     else:
         cur.execute(query)
     return cur.fetchall()
+
+# column_data is a lis of duples (column_name, value)
+def update(con, cur, table, column_data, where_clause, where_data):
+    query = "UPDATE {} SET {} ".format(table, ",".join(["{}='{}'".format(column_name, value) for column_name, value in column_data]))
+    if where_clause is not None:
+        query += "WHERE {} ".format(where_clause)
+        cur.execute(query, where_data)
+        # print("query: {}".format(query))
+    else:
+        cur.execute(query)
+    con.commit()
 
 def delete(con, cur, table, where_clause, where_data):
     query = "DELETE FROM {} ".format(table)
