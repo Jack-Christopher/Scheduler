@@ -24,17 +24,15 @@ class Schedule(tk.Tk):
         self.courses_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.courses_menu.add_command(label="View courses", command=self.view_courses)
         self.courses_menu.add_separator()
-        self.courses_menu.add_command(label="Add a course")
-        self.courses_menu.add_command(label="Remove a course")
-        self.file_menu.add_cascade(label="Courses", menu=self.courses_menu)
+        self.courses_menu.add_command(label="Add a course", command=self.add_course)
+        # self.courses_menu.add_command(label="Remove a course")
 
         # create the tasks_menu
         self.tasks_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.tasks_menu.add_command(label="View tasks")
+        self.tasks_menu.add_command(label="View tasks", command=self.view_tasks)
         self.tasks_menu.add_separator()
-        self.tasks_menu.add_command(label="Add a task")
-        self.tasks_menu.add_command(label="Remove a task")
-        self.file_menu.add_cascade(label="Tasks", menu=self.tasks_menu)
+        self.tasks_menu.add_command(label="Add a task", command=self.add_task)
+        # self.tasks_menu.add_command(label="Remove a task")
 
         # create the settings_menu
         self.file_menu.add_separator()
@@ -47,6 +45,8 @@ class Schedule(tk.Tk):
 
         # add the options to the menubar
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
+        self.menu_bar.add_cascade(label="Courses", menu=self.courses_menu)
+        self.menu_bar.add_cascade(label="Tasks", menu=self.tasks_menu)
         self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
 
         self.scrollable_frame = None
@@ -68,36 +68,106 @@ class Schedule(tk.Tk):
             user_name = user_name[0][0]
 
         return user_name
+
     
-    # def select_course(self):
-    #     print("Select a course: ")
-    #     courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
-    #     for c in courses:
-    #         print(" {}. {}".format(c[0], c[1]))
-    #     choice = input("Enter a choice: ")
-    #     return int(choice)
+    def rename_course_helper(self, course_id, new_name, window):
+            db.update(self.con, self.cur, "courses", [("name", new_name)], "rowid=?", (course_id, ))
+            window.destroy()
+            self.view_courses()
+
+
+    def rename_course(self, course_id):
+        # New window to introduce the new name
+        new_name = tk.Tk()
+        new_name.title("Rename course")
+        new_name.geometry('300x50+600+200')
+                 
+        # add entry
+        new_name_entry = tk.Entry(new_name)
+        new_name_entry.pack(fill=tk.X)
+        # add button
+        new_name_button = tk.Button(new_name, text="Rename", command=lambda: self.rename_course_helper(course_id, new_name_entry.get(), new_name))
+        new_name_button.pack(fill=tk.X)
+        new_name.mainloop()
+
+
+    def add_course_helper(self, new_name, window):
+        db.insert(self.con, self.cur, "courses", ["name"], (new_name, ))
+        window.destroy()
+        self.view_courses()
+
+    def add_course(self):
+        # New window to introduce the new course
+        new_course = tk.Tk()
+        new_course.title("Add course")
+        new_course.geometry('300x50+600+200')
+                 
+        # add entry
+        new_course_entry = tk.Entry(new_course)
+        new_course_entry.pack(fill=tk.X)
+        # add button
+        new_course_button = tk.Button(new_course, text="Add", command=lambda: self.add_course_helper( new_course_entry.get(), new_course))
+        new_course_button.pack(fill=tk.X)
+        new_course.mainloop()
+
+        db.insert(self.con, self.cur, "courses", ["name"], (course_name, ))
+
     
-    
+    def delete_course(self, course_id):
+        db.delete(self.con, self.cur, "courses", "rowid=?", (course_id, ))
+        self.view_courses()
+        
+
     def view_courses(self):
+        if self.scrollable_frame is not None:
+            self.scrollable_frame.destroy()
+        self.scrollable_frame = tk.Frame(self)
+        self.scrollable_frame.pack(fill=tk.BOTH, expand=True)
+        
+        courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
+
+        for c in courses:
+            course_frame = tk.Frame(self.scrollable_frame)
+            # add padding to left
+            course_label = tk.Label(course_frame, text=" "*3)
+            course_label.pack(side=tk.LEFT)
+            # add padding to right
+            course_label = tk.Label(course_frame, text=" ")
+            course_label.pack(side=tk.RIGHT)
+            # add padding to top
+            course_label = tk.Label(course_frame, text=" ")
+            course_label.pack(side=tk.TOP)
+
+            course_frame.pack(fill=tk.X)
+            course_label = tk.Label(course_frame, text=c[1])
+            course_label.pack(side=tk.LEFT)
+            course_button = tk.Button(course_frame, text="Rename", command=lambda c=c[0]: self.rename_course(c))
+            course_button.pack(side=tk.RIGHT)
+            course_button = tk.Button(course_frame, text="Delete", command=lambda c=c[0]: self.delete_course(c))
+            course_button.pack(side=tk.RIGHT)
+
+
+    def view_tasks(self):
         # if there's already a frame, destroy it
         if self.scrollable_frame is not None:
             self.scrollable_frame.destroy()
         self.scrollable_frame = tk.Frame(self)
         self.scrollable_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.scrollbar = tk.Scrollbar(self.scrollable_frame)
-        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.listbox = tk.Listbox(self.scrollable_frame, yscrollcommand=self.scrollbar.set)
-        self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.scrollbar.config(command=self.listbox.yview)
+        # self.scrollbar = tk.Scrollbar(self.scrollable_frame)
+        # self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        # self.listbox = tk.Listbox(self.scrollable_frame, yscrollcommand=self.scrollbar.set)
+        # self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # self.scrollbar.config(command=self.listbox.yview)
+        # self.listbox.bind('<Double-Button-1>', self.select_task)
 
         courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
 
         if len(courses) != 0:
             for course in courses:
                 # put the course name in a scrollable frame
-                course_frame = tk.Frame(self.listbox)
+                course_frame = tk.Frame(self.scrollable_frame)
                 course_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-                course_label = tk.Label(course_frame, text=course[1], font=("Helvetica", 15))
+                course_label = tk.Label(course_frame, text=course[1], font=("Helvetica", 13, "bold"))
                 course_label.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
                 
                 # put the tasks below the course name
@@ -105,17 +175,17 @@ class Schedule(tk.Tk):
                 if len(tasks) != 0:
                     for task in tasks:
                         # table of tasks
-                        task_frame = tk.Frame(self.listbox)
+                        task_frame = tk.Frame(self.scrollable_frame)
                         task_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-                        task_label = tk.Label(task_frame, text="{}{}  {}  {}".format('\u2666'*task[2], " "*3*(10-task[2]), task[0], task[1]), font=("Helvetica", 12))
+                        task_label = tk.Label(task_frame, text="{}{}  {}  {}".format('\u2666'*task[2], " "*3*(10-task[2]), task[0], task[1]), font=("Helvetica", 10))
                         task_label.pack(side=tk.TOP, fill=tk.X, expand=True)
                 else:
-                    tk.Label(self.listbox, text="No tasks", font=("Helvetica", 12)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+                    tk.Label(self.scrollable_frame, text="No tasks", fg="gray", font=("Helvetica", 10)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
                 
                 # add a separator
-                tk.Frame(self.listbox, height=2, bd=1, relief=tk.SUNKEN).pack(side=tk.TOP, fill=tk.X, pady=10)
+                tk.Frame(self.scrollable_frame, height=2, bd=1, relief=tk.SUNKEN).pack(side=tk.TOP, fill=tk.X, pady=10)
         else:
-            tk.Label(self.listbox, text="No courses", font=("Helvetica", 12)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            tk.Label(self.scrollable_frame, text="No courses", font=("Helvetica", 12)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
 
     def __del__(self):
@@ -128,7 +198,6 @@ if __name__ == "__main__":
 
     username = S.get_user()
     os.system("cls")
-    # print("Welcome {}\n".format(username))
     # sleep(1)
     # menu_option = ""
     # while menu_option != "3":
