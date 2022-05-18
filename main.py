@@ -11,8 +11,11 @@ class Schedule(tk.Tk):
     def __init__(self):
         super().__init__()
 
+        # set user name
+        self.user_name = ""
+
         # configure the root window
-        self.title('Scheduler - Managment of my tasks')
+        self.title('Scheduler - Management of my tasks' if self.user_name == "" else 'Scheduler - for {}'.format(self.user_name))
         self.geometry('500x600+500+20')
         self.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
 
@@ -59,21 +62,38 @@ class Schedule(tk.Tk):
 
         # init view
         self.view_tasks()
+
+        # set user name
+        self.get_user()
         
     
-    def set_user(self, user_name):
+    def set_user(self, window, user_name):
         db.insert(self.con, self.cur, "settings", ["name", "value"], ("user", user_name))
-        self.con.commit()
+        self.user_name = user_name
+        self.title('Scheduler - Management of my tasks' if self.user_name == "" else 'Scheduler - for {}'.format(self.user_name))
+        window.destroy()
+        
     
     def get_user(self):
-        user_name = db.select(S.cur, "settings", ["value"], "name=?", ("user", ))
+        user_name = db.select(self.cur, "settings", ["value"], "name=?", ("user", ))
         if user_name == []:
-            user_name = input("Enter you name: ")
-            self.set_user(user_name)
-        else:
-            user_name = user_name[0][0]
+            # new window to introduce the user name
+            sleep(1)
+            new_user = tk.Toplevel(self)
+            new_user.title("Introduce your name")
+            new_user.geometry('300x50+600+200')
+            new_user.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
 
-        return user_name
+            # add entry
+            new_user_entry = tk.Entry(new_user)
+            new_user_entry.pack(fill=tk.X)
+            # add button
+            new_user_button = tk.Button(new_user, text="Set", command=lambda: self.set_user(new_user, new_user_entry.get()))
+            new_user_button.pack(fill=tk.X)
+            new_user.mainloop()
+        else:
+            self.user_name = user_name[0][0]
+            self.title('Scheduler - Managment of my tasks' if self.user_name == "" else 'Scheduler - for {}'.format(self.user_name))
 
     
     def rename_course_helper(self, course_id, new_name, window):
@@ -84,7 +104,7 @@ class Schedule(tk.Tk):
 
     def rename_course(self, course_id):
         # New window to introduce the new name
-        new_name = tk.Tk()
+        new_name = tk.Toplevel(self)
         new_name.title("Rename course")
         new_name.geometry('300x50+600+200')
         new_name.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
@@ -134,6 +154,8 @@ class Schedule(tk.Tk):
         
         courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
 
+        if courses == []:
+            tk.Label(self.scrollable_frame, text="No courses", font=("Helvetica", 14)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         for c in courses:
             course_frame = tk.Frame(self.scrollable_frame)
             # add padding to left
@@ -275,7 +297,7 @@ class Schedule(tk.Tk):
                 # add a separator
                 tk.Frame(self.scrollable_frame, height=2, bd=1, relief=tk.SUNKEN).pack(side=tk.TOP, fill=tk.X, pady=10)
         else:
-            tk.Label(self.scrollable_frame, text="No courses", font=("Helvetica", 12)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            tk.Label(self.scrollable_frame, text="No tasks", font=("Helvetica", 14)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
 
     def __del__(self):
@@ -285,6 +307,4 @@ class Schedule(tk.Tk):
 if __name__ == "__main__":
     S = Schedule()
     S.mainloop()
-
-    username = S.get_user()
     os.system("cls")
