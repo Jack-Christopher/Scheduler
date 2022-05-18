@@ -2,6 +2,8 @@ import os
 import tkinter as tk
 import database as db
 from time import sleep
+from tkinter import simpledialog
+from tkcalendar import Calendar, DateEntry
 
 
 class Schedule(tk.Tk):
@@ -146,6 +148,76 @@ class Schedule(tk.Tk):
             course_button = tk.Button(course_frame, text="Delete", command=lambda c=c[0]: self.delete_course(c))
             course_button.pack(side=tk.RIGHT)
 
+    def select_date(self, new_task, selected):
+        top = tk.Toplevel(new_task)
+        cal = Calendar(top, font="Arial 14", selectmode='day', cursor="hand1", year=2018, month=2, day=5)
+        cal.pack(fill="both", expand=True)
+        
+        def get_values():
+            selected['date'] = cal.get_date()
+            # print("SD: ", selected['date'])
+            top.destroy()
+        tk.Button(top, text="ok", command=lambda: get_values()).pack()
+        top.mainloop()
+
+
+    def select_course(self, new_task, selected):
+        courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
+        course_list = []
+        for c in courses:
+            course_list.append(str(c[0]) + "-. " + c[1])
+        # list box to select the course
+        course_selection = tk.Toplevel(new_task)
+        course_selection.title("Select course")
+        course_selection.geometry('300x200+600+200')
+        course_listbox = tk.Listbox(course_selection, selectmode=tk.SINGLE)
+        for course in course_list:
+            course_listbox.insert(tk.END, course)
+        course_listbox.pack(fill=tk.BOTH, expand=True)
+
+        def get_values():
+            selected['course'] = course_listbox.get(tk.ACTIVE)
+            course_selection.destroy()
+            # print("SC: ", selected['course'])
+
+        tk.Button(course_selection, text="OK", command=lambda: get_values()).pack()
+        course_selection.mainloop()
+
+        
+    def add_task(self):
+        # New window to introduce the new task name, task priority due date and task course
+        new_task = tk.Toplevel(self)
+        new_task.title("Add task")
+        new_task.geometry('300x175+600+200')
+
+        # add entry for task name with label
+        new_task_name_label = tk.Label(new_task, text="Task name:").pack(side=tk.TOP)
+        new_task_name_entry = tk.Entry(new_task)
+        new_task_name_entry.pack(fill=tk.X)
+        # add number selector between 1-10 for task priority with label
+        new_task_priority_label = tk.Label(new_task, text="Task priority:").pack(side=tk.TOP)
+        new_task_priority_entry = tk.Spinbox(new_task, from_=1, to=10)
+        new_task_priority_entry.pack(fill=tk.X)
+        # add date picker for task due date
+        selected = {'date': "", 'course': ""}
+        date_button = tk.Button(new_task, text="Select Due Date", command=lambda: self.select_date(new_task, selected) ).pack(fill=tk.X)
+        course_button = tk.Button(new_task, text="Select Course", command=lambda: self.select_course(new_task, selected) ).pack(fill=tk.X)
+
+        def add_task_helper(task_name, task_priority, task_due_date, task_course):
+            course_id = int(task_course.split("-. ")[0])
+
+            db.insert(self.con, self.cur, "tasks", ["name", "priority", "due_date", "course_id"], (task_name, task_priority, task_due_date, course_id))
+            new_task.destroy()
+            # print("Data: ", task_name, task_priority, task_due_date, task_course)
+            self.view_tasks()
+
+        # add button to add task
+        new_task_button = tk.Button(new_task, text="Add", command=lambda: add_task_helper(new_task_name_entry.get(), new_task_priority_entry.get(), selected['date'], selected['course']))
+        new_task_button.pack(fill=tk.X)
+        
+        new_task.mainloop()        
+
+
 
     def view_tasks(self):
         # if there's already a frame, destroy it
@@ -153,12 +225,6 @@ class Schedule(tk.Tk):
             self.scrollable_frame.destroy()
         self.scrollable_frame = tk.Frame(self)
         self.scrollable_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        # self.scrollbar = tk.Scrollbar(self.scrollable_frame)
-        # self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        # self.listbox = tk.Listbox(self.scrollable_frame, yscrollcommand=self.scrollbar.set)
-        # self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        # self.scrollbar.config(command=self.listbox.yview)
-        # self.listbox.bind('<Double-Button-1>', self.select_task)
 
         courses = db.select(self.cur, "courses", ["rowid", "name"], None, None)
 
