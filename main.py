@@ -1,4 +1,5 @@
 import os
+import datetime
 import tkinter as tk
 import database as db
 from time import sleep
@@ -12,7 +13,7 @@ class Schedule(tk.Tk):
 
         # configure the root window
         self.title('Scheduler - Managment of my tasks')
-        self.geometry('450x600+500+20')
+        self.geometry('500x600+500+20')
         self.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
 
         # create menu bar
@@ -55,6 +56,9 @@ class Schedule(tk.Tk):
 
         # start connection to database
         self.con, self.cur = db.start()
+
+        # init view
+        self.view_tasks()
         
     
     def set_user(self, user_name):
@@ -83,6 +87,7 @@ class Schedule(tk.Tk):
         new_name = tk.Tk()
         new_name.title("Rename course")
         new_name.geometry('300x50+600+200')
+        new_name.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
                  
         # add entry
         new_name_entry = tk.Entry(new_name)
@@ -100,9 +105,10 @@ class Schedule(tk.Tk):
 
     def add_course(self):
         # New window to introduce the new course
-        new_course = tk.Tk()
+        new_course = tk.Toplevel(self)
         new_course.title("Add course")
         new_course.geometry('300x50+600+200')
+        new_course.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
                  
         # add entry
         new_course_entry = tk.Entry(new_course)
@@ -150,14 +156,16 @@ class Schedule(tk.Tk):
 
     def select_date(self, new_task, selected):
         top = tk.Toplevel(new_task)
-        cal = Calendar(top, font="Arial 14", selectmode='day', cursor="hand1", year=2018, month=2, day=5)
+        # get current date
+        date = datetime.datetime.now() 
+        cal = Calendar(top, font="Arial 14", selectmode='day', cursor="hand2", year=date.year, month=date.month, day=date.day, date_pattern="dd-mm-yyyy")
         cal.pack(fill="both", expand=True)
         
         def get_values():
             selected['date'] = cal.get_date()
             # print("SD: ", selected['date'])
             top.destroy()
-        tk.Button(top, text="ok", command=lambda: get_values()).pack()
+        tk.Button(top, text="Choose", command=lambda: get_values()).pack(pady=10)
         top.mainloop()
 
 
@@ -170,6 +178,8 @@ class Schedule(tk.Tk):
         course_selection = tk.Toplevel(new_task)
         course_selection.title("Select course")
         course_selection.geometry('300x200+600+200')
+        course_selection.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
+
         course_listbox = tk.Listbox(course_selection, selectmode=tk.SINGLE)
         for course in course_list:
             course_listbox.insert(tk.END, course)
@@ -188,7 +198,8 @@ class Schedule(tk.Tk):
         # New window to introduce the new task name, task priority due date and task course
         new_task = tk.Toplevel(self)
         new_task.title("Add task")
-        new_task.geometry('300x175+600+200')
+        new_task.geometry('300x190+600+200')
+        new_task.iconphoto(False, tk.PhotoImage(file='scheduler.png'))
 
         # add entry for task name with label
         new_task_name_label = tk.Label(new_task, text="Task name:").pack(side=tk.TOP)
@@ -213,10 +224,14 @@ class Schedule(tk.Tk):
 
         # add button to add task
         new_task_button = tk.Button(new_task, text="Add", command=lambda: add_task_helper(new_task_name_entry.get(), new_task_priority_entry.get(), selected['date'], selected['course']))
-        new_task_button.pack(fill=tk.X)
+        new_task_button.pack(side=tk.BOTTOM, pady=10)
         
         new_task.mainloop()        
 
+
+    def delete_task(self, task_id):
+        db.delete(self.con, self.cur, "tasks", "rowid=?", (task_id, ))
+        self.view_tasks()
 
 
     def view_tasks(self):
@@ -237,16 +252,25 @@ class Schedule(tk.Tk):
                 course_label.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
                 
                 # put the tasks below the course name
-                tasks = db.select(self.cur, "tasks", ["name", "due_date", "priority"], "course_id=?", (course[0], ))
+                tasks = db.select(self.cur, "tasks", ["name", "due_date", "priority", "rowid"], "course_id=?", (course[0], ))
                 if len(tasks) != 0:
                     for task in tasks:
                         # table of tasks
                         task_frame = tk.Frame(self.scrollable_frame)
                         task_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-                        task_label = tk.Label(task_frame, text="{}{}  {}  {}".format('\u2666'*task[2], " "*3*(10-task[2]), task[0], task[1]), font=("Helvetica", 10))
-                        task_label.pack(side=tk.TOP, fill=tk.X, expand=True)
+                        priority_label = tk.Label(task_frame, text="  {}{}".format('\u2666'*task[2], " "*(10-task[2])), font=("Courier", 10), justify=tk.LEFT)
+                        task_label = tk.Label(task_frame, text="  {}".format(task[0]), font=("Courier", 10), justify=tk.LEFT, width=24, wraplength=200)
+                        date_label = tk.Label(task_frame, text="  {}".format(task[1]), font=("Courier", 10), justify=tk.LEFT, width=12, wraplength=100)
+
+                        priority_label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                        task_label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                        date_label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                        # delete  option
+                        delete_button = tk.Button(task_frame, text="Delete", command=lambda id=task[3]: self.delete_task(id))
+                        delete_button.pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=5)
+
                 else:
-                    tk.Label(self.scrollable_frame, text="No tasks", fg="gray", font=("Helvetica", 10)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+                    tk.Label(self.scrollable_frame, text="No tasks", fg="gray", font=("Courier", 10)).pack(side=tk.TOP, fill=tk.BOTH, expand=True)
                 
                 # add a separator
                 tk.Frame(self.scrollable_frame, height=2, bd=1, relief=tk.SUNKEN).pack(side=tk.TOP, fill=tk.X, pady=10)
